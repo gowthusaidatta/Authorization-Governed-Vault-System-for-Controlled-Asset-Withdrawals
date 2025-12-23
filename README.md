@@ -1,3 +1,5 @@
+# Authorization-Governed-Vault-System-for-Controlled-Asset-Withdrawals
+
 # Authorization-Governed Vault System
 
 A two-contract vault design that separates custody (SecureVault) from authorization (AuthorizationManager). Withdrawals require an off-chain authorization signed by a designated signer and can be consumed exactly once on-chain.
@@ -70,3 +72,4 @@ Sign the hash with `signMessage(getBytes(hash))` from the trusted signer. The ma
 - Replay protection is hash-based; collisions are mitigated by the strict ABI encoding and nonce.
 - ETH transfers use `call` and are non-reentrant via `ReentrancyGuard` in the vault.
 - Signatures use `eth_sign`-style hashing. For production, an EIP-712 domain could be adopted with the same fields.
+
