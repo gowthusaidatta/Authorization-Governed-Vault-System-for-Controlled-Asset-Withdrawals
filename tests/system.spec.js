@@ -98,4 +98,63 @@ describe("Authorization-governed vault", function () {
       "InvalidSignature"
     );
   });
+
+  it("rejects authorization with wrong vault address", async () => {
+    const amount = ethers.parseEther("0.1");
+    await deployer.sendTransaction({ to: vault.target, value: amount });
+
+    const fakeVaultAddress = "0x0000000000000000000000000000000000000001";
+    const auth = {
+      vault: fakeVaultAddress,
+      recipient: recipient.address,
+      amount,
+      nonce: 8,
+      chainId: 31337
+    };
+
+    const signature = await signAuthorization(auth, signer);
+    await expect(vault.withdraw(auth, signature)).to.be.revertedWithCustomError(
+      authorizationManager,
+      "InvalidVault"
+    );
+  });
+
+  it("rejects authorization with wrong chain ID", async () => {
+    const amount = ethers.parseEther("0.15");
+    await deployer.sendTransaction({ to: vault.target, value: amount });
+
+    const auth = {
+      vault: vault.target,
+      recipient: recipient.address,
+      amount,
+      nonce: 9,
+      chainId: 1 // Wrong chain (mainnet instead of hardhat)
+    };
+
+    const signature = await signAuthorization(auth, signer);
+    await expect(vault.withdraw(auth, signature)).to.be.revertedWithCustomError(
+      authorizationManager,
+      "ChainIdMismatch"
+    );
+  });
+
+  it("rejects withdrawal with insufficient vault balance", async () => {
+    const depositAmount = ethers.parseEther("0.1");
+    const withdrawAmount = ethers.parseEther("0.5"); // More than deposited
+    await deployer.sendTransaction({ to: vault.target, value: depositAmount });
+
+    const auth = {
+      vault: vault.target,
+      recipient: recipient.address,
+      amount: withdrawAmount,
+      nonce: 10,
+      chainId: 31337
+    };
+
+    const signature = await signAuthorization(auth, signer);
+    await expect(vault.withdraw(auth, signature)).to.be.revertedWithCustomError(
+      vault,
+      "InsufficientVaultFunds"
+    );
+  });
 });
