@@ -138,6 +138,26 @@ describe("Authorization-governed vault", function () {
     );
   });
 
+  it("reverts if authorization is signed for a different chain", async () => {
+    const amount = ethers.parseEther("0.05");
+    await deployer.sendTransaction({ to: vault.target, value: amount });
+
+    const wrongChainId = 999;
+    const auth = {
+      vault: vault.target,
+      recipient: recipient.address,
+      amount,
+      nonce: 11,
+      chainId: wrongChainId
+    };
+
+    const signature = await signAuthorization(auth, signer);
+    await expect(vault.withdraw(auth, signature)).to.be.revertedWithCustomError(
+      authorizationManager,
+      "ChainIdMismatch"
+    );
+  });
+
   it("rejects withdrawal with insufficient vault balance", async () => {
     const depositAmount = ethers.parseEther("0.1");
     const withdrawAmount = ethers.parseEther("0.5"); // More than deposited

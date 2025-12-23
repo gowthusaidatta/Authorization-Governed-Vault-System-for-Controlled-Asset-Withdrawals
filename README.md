@@ -19,6 +19,8 @@ This starts a local Hardhat node on `localhost:8545` (exposed to host), compiles
 
 **RPC Access**: The blockchain service exposes port 8545 to the host machine, allowing evaluators to connect via `http://localhost:8545` for testing and validation.
 
+After running `docker-compose up`, the local RPC endpoint is available at `http://localhost:8545` for evaluator interaction.
+
 ## Contracts
 
 - `contracts/AuthorizationManager.sol` — verifies signatures, enforces replay protection, and only allows the configured vault to consume authorizations.
@@ -38,12 +40,70 @@ $$\text{hash} = \operatorname{keccak256}(\text{abi.encode}(vault, recipient, amo
 
 Sign the hash with `signMessage(getBytes(hash))` from the trusted signer. The manager recovers the signer via `ECDSA.toEthSignedMessageHash().recover` and marks the hash as consumed before the vault transfers value.
 
+## Authorization Design
+
+Withdrawal permissions are generated off-chain and verified on-chain via the AuthorizationManager contract.
+
+Each authorization signs a deterministic message constructed as:
+
+keccak256(
+   abi.encode(
+      chainId,
+      vaultAddress,
+      recipient,
+      amount,
+      nonce
+   )
+)
+
+This binding ensures that an authorization is valid ONLY for:
+- a specific vault instance
+- a specific blockchain network
+- a specific recipient
+- a specific withdrawal amount
+- a single execution (via nonce)
+
+## Replay Protection
+
+Replay protection is enforced using a unique nonce per authorization.
+
+The AuthorizationManager stores a mapping of consumed authorization hashes. Once an authorization is successfully verified, it is marked as consumed and can never be reused.
+
+Any attempt to reuse the same authorization will deterministically revert.
+
+This guarantees that each authorization results in exactly one state transition.
+
+## Signature Scheme
+
+Signatures are generated using Ethers.js signMessage, which applies the Ethereum Signed Message prefix:
+
+"\x19Ethereum Signed Message:\n32"
+
+This prevents raw transaction replay and ensures compatibility with standard wallet tooling.
+
+While EIP-712 typed data provides stronger guarantees for complex schemas, the strict field ordering and fixed-length encoding used here eliminate ambiguity. For production systems, EIP-712 is recommended.
+
+## Reentrancy and State Safety
+
+SecureVault follows the Checks-Effects-Interactions pattern.
+
+All critical state updates (authorization consumption and accounting) occur BEFORE any external value transfer.
+
+Additionally, the withdraw function is protected using OpenZeppelin's ReentrancyGuard to prevent reentrant execution paths.
+
+## Initialization Safety
+
+Both SecureVault and AuthorizationManager include one-time initialization guards.
+
+Initialization functions in both contracts are protected by a one-time execution guard, preventing re-initialization or contract takeover.
+
 ### Invariants
 
 - Authorization can be consumed once: `consumed[hash]` flips before funds move.
 - Chain and vault binding: manager requires `auth.chainId == block.chainid` and `auth.vault == configured vault`.
 - State before value: vault increments `totalWithdrawn` before performing the call.
 - Initialization is single-use: `AuthorizationManager.setVault()` is callable once by the deployer.
+- Authorization hashes are derived from all contextual parameters and stored on-chain, ensuring that even identical withdrawals require distinct nonces.
 
 ## Manual interaction example
 
