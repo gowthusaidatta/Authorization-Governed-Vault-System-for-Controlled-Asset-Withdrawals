@@ -1,5 +1,3 @@
-# Authorization-Governed-Vault-System-for-Controlled-Asset-Withdrawals
-
 # Authorization-Governed Vault System
 
 A two-contract vault design that separates custody (SecureVault) from authorization (AuthorizationManager). Withdrawals require an off-chain authorization signed by a designated signer and can be consumed exactly once on-chain.
