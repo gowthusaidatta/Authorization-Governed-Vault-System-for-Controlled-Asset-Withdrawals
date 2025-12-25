@@ -21,6 +21,63 @@ This starts a local Hardhat node on `localhost:8545` (exposed to host), compiles
 
 After running `docker-compose up`, the local RPC endpoint is available at `http://localhost:8545` for evaluator interaction.
 
+## Project Structure
+
+```text
+.
+├── ARCHITECTURE.md
+├── DEPLOYMENT_STATUS.md
+├── HOW_TO_GET_LIVE_DEMO.md
+├── QUICK_START_DEMO.md
+├── README.md
+├── SECURITY_ANALYSIS.md
+├── START_HERE.md
+├── docker-compose.yml
+├── hardhat.config.js
+├── package.json
+├── start-demo.bat
+├── start-demo.sh
+├── contracts/
+│   ├── AuthorizationManager.sol
+│   └── SecureVault.sol
+├── docker/
+│   ├── Dockerfile
+│   └── entrypoint.sh
+├── scripts/
+│   └── deploy.js
+├── tests/
+│   └── system.spec.js
+└── frontend/
+   ├── .env.example
+   ├── .gitignore
+   ├── index.html
+   ├── package.json
+   ├── package-lock.json
+   ├── README.md
+   ├── vercel.json
+   ├── vite.config.js
+   └── src/
+      ├── App.css
+      ├── App.jsx
+      ├── main.jsx
+      └── components/
+         ├── DepositTab.css
+         ├── DepositTab.jsx
+         ├── StatsTab.css
+         ├── StatsTab.jsx
+         ├── VaultDashboard.css
+         ├── VaultDashboard.jsx
+         ├── WalletConnect.css
+         └── WalletConnect.jsx
+```
+
+Key paths:
+- Contracts: `contracts/`
+- Frontend app (Vercel): `frontend/`
+- Docker setup: `docker/` + `docker-compose.yml`
+- Tests: `tests/system.spec.js`
+- Deployment script: `scripts/deploy.js`
+
 ## Contracts
 
 - `contracts/AuthorizationManager.sol` — verifies signatures, enforces replay protection, and only allows the configured vault to consume authorizations.
